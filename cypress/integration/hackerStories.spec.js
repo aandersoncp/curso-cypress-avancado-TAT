@@ -25,7 +25,9 @@ describe('Hacker Stories', () => {
 
       cy.get('.item').should('have.length', 20)
 
-      cy.contains('More').click()
+      cy.contains('More')
+        .should('be.visible')  
+        .click()
 
       cy.wait('@getReactSecondPage')
 
@@ -36,21 +38,29 @@ describe('Hacker Stories', () => {
       cy.intercept('GET', `**/search?query=${newTerm}&page=0`).as('getNewTermStories')
 
       cy.get('#search')
+        .should('be.visible')
         .clear()
         .type(`${newTerm}{enter}`)
 
       cy.wait('@getNewTermStories')
 
+      cy.getLocalStorage('search')
+        .should('be.equal', newTerm)
+
       cy.get(`button:contains(${initialTerm})`)
         .should('be.visible')
         .click()
+      
+      cy.getLocalStorage('search')
+        .should('be.equal', initialTerm)
 
       cy.wait('@getInitialTermStories')
 
       cy.get('.item').should('have.length', 20)
       cy.get('.item')
         .first()
-        .should('contain', initialTerm)
+        .should('be.visible')
+        .and('contain', initialTerm)
       cy.get(`button:contains(${newTerm})`)
         .should('be.visible')
     })
@@ -73,12 +83,12 @@ describe('Hacker Stories', () => {
       })
 
       context('List of stories', () => {
-        it.only('shows the right data for all rendered stories', () => {
-          const stories = require('../fixtures/stories.json')
-
+        const stories = require('../fixtures/stories.json')
+        it('shows the right data for all rendered stories', () => {
           cy.get('.item')
             .first()
-            .should('contain', stories.hits[0].title)
+            .should('be.visible')
+            .and('contain', stories.hits[0].title)
             .and('contain', stories.hits[0].author)
             .and('contain', stories.hits[0].num_comments)
             .and('contain', stories.hits[0].points)
@@ -87,34 +97,111 @@ describe('Hacker Stories', () => {
 
           cy.get('.item')
             .last()
+            .should('be.visible')
             .should('contain', stories.hits[1].title)
             .and('contain', stories.hits[1].author)
             .and('contain', stories.hits[1].num_comments)
             .and('contain', stories.hits[1].points)
-          cy.get(`.item a:contains(${stories.hits[0].title})`)
-            .should('have.attr', 'href', stories.hits[0].url)
+          cy.get(`.item a:contains(${stories.hits[1].title})`)
+            .should('have.attr', 'href', stories.hits[1].url)
         })
         it('shows one less story after dimissing the first one', () => {
           cy.get('.button-small')
             .first()
+            .should('be.visible')
             .click()
 
           cy.get('.item').should('have.length', 1)
         })
 
-        // Since the API is external,
-        // I can't control what it will provide to the frontend,
-        // and so, how can I test ordering?
-        // This is why these tests are being skipped.
-        // TODO: Find a way to test them out.
-        context.skip('Order by', () => {
-          it('orders by title', () => {})
+        context('Order by', () => {
+          it('orders by title', () => {
+            cy.get('.list-header-button:contains(Title)')
+              .as('titleHeader')
+              .should('be.visible')
+              .click()
+              
 
-          it('orders by author', () => {})
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].title)
 
-          it('orders by comments', () => {})
+            cy.get(`.item a:contains(${stories.hits[0].title})`)
+              .should('have.attr', 'href', stories.hits[0].url)
 
-          it('orders by points', () => {})
+            cy.get('@titleHeader')
+              .click()
+            
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].title)
+
+            cy.get(`.item a:contains(${stories.hits[1].title})`)
+              .should('have.attr', 'href', stories.hits[1].url)
+          })
+            
+          it('orders by author', () => {
+            cy.get('.list-header-button:contains(Author)')
+              .as('authorHeader')
+              .should('be.visible')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].author)
+
+            cy.get('@authorHeader')
+              .click()
+            
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].author)
+          })
+
+          it('orders by comments', () => {
+            cy.get('.list-header-button:contains(Comments)')
+              .as('commentsHeader')
+              .should('be.visible')
+              .click()
+              
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].num_comments)
+
+            cy.get('@commentsHeader')
+              .click()
+            
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].num_comments)
+          })
+
+          it('orders by points', () => {
+            cy.get('.list-header-button:contains(Points)')
+              .as('pointsHeader')
+              .should('be.visible')
+              .click()
+
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[1].points)
+
+            cy.get('@pointsHeader')
+              .click()
+            
+            cy.get('.item')
+              .first()
+              .should('be.visible')
+              .and('contain', stories.hits[0].points)
+          })
         })
       })
     })
@@ -129,14 +216,24 @@ describe('Hacker Stories', () => {
         cy.wait('@getEmptyStories')
 
         cy.get('#search')
+          .should('be.visible')
           .clear()
+      })
+
+      it('shows no story when none is returned', () => {
+        cy.get('.item')
+          .should('not.exist')
       })
 
       it('types and hits ENTER', () => {
         cy.get('#search')
+          .should('be.visible')
           .type(`${newTerm}{enter}`)
 
         cy.wait('@getStories')
+
+        cy.getLocalStorage('search')
+          .should('be.equal', newTerm)
 
         cy.get('.item').should('have.length', 2)
         cy.get(`button:contains(${initialTerm})`)
@@ -145,11 +242,16 @@ describe('Hacker Stories', () => {
 
       it('types and clicks the submit button', () => {
         cy.get('#search')
+          .should('be.visible')
           .type(newTerm)
         cy.contains('Submit')
+          .should('be.visible')
           .click()
 
         cy.wait('@getStories')
+
+        cy.getLocalStorage('search')
+          .should('be.equal', newTerm)
 
         cy.get('.item').should('have.length', 2)
         cy.get(`button:contains(${initialTerm})`)
@@ -162,10 +264,18 @@ describe('Hacker Stories', () => {
           cy.intercept('GET', '**/search**', { fixture: 'empty' }).as('getRandomStories')
 
           Cypress._.times(6, () => {
+            const randomWord = faker.random.word()
             cy.get('#search')
               .clear()
-              .type(`${faker.random.word()}{enter}`)
+              .type(`${randomWord}{enter}`)
             cy.wait('@getRandomStories')
+            cy.getLocalStorage('search')
+              .should('be.equal', randomWord)
+          })
+
+          cy.get('.last-searches')
+            .within(() => {
+              cy.get('button').should('have.length', 5)
           })
 
           cy.get('.last-searches button')
@@ -176,9 +286,6 @@ describe('Hacker Stories', () => {
   })
 })
 
-// Hrm, how would I simulate such errors?
-// Since I still don't know, the tests are being skipped.
-// TODO: Find a way to test them out.
 context('Errors', () => {
   it('shows "Something went wrong ..." in case of a server error', () => {
     cy.intercept('GET', '**/search**', { statusCode: 500 }).as('getServerFailure')
@@ -199,4 +306,23 @@ context('Errors', () => {
 
     cy.get('p:contains(Something went wrong ...)').should('be.visible')
   })
+})
+
+it('shows a "Loading ..." state before showing the results', () => {
+  cy.intercept(
+    'GET',
+    '**/search**',
+    {
+      delay: 1000,
+      fixture: 'stories'
+    }
+  ).as('getDelayedStories')
+
+  cy.visit('/')
+
+  cy.assertLoadingIsShownAndHidden()
+
+  cy.wait('@getDelayedStories')
+
+  cy.get('.item').should('have.length', 2)
 })
